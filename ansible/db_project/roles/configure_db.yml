@@ -1,0 +1,21 @@
+---
+- name: Configure MongoDB
+  hosts: db
+  become: yes
+  tasks:
+    - name: Update MongoDB configuration
+      lineinfile:
+        path: /etc/mongod.conf
+        regexp: '  bindIp: 127.0.0.1'
+        line: '  bindIp: 0.0.0.0'
+        backrefs: yes
+
+    - name: Configure firewall rule for MongoDB
+      command: iptables -A INPUT -p tcp --dport 27017 -s 10.0.1.0/24 -j ACCEPT
+
+    - name: Start MongoDB service
+      systemd:
+        name: mongod
+        state: started
+        enabled: yes
+

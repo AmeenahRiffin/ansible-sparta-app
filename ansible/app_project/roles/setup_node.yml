@@ -1,0 +1,20 @@
+---
+- name: Install Node.js and NVM
+  hosts: web
+  become: yes
+  tasks:
+    - name: Add NodeSource repository
+      shell: curl -fsSL https://deb.nodesource.com/setup_current.x | bash -
+
+    - name: Install NodeJS
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Install NVM
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+        nvm install node

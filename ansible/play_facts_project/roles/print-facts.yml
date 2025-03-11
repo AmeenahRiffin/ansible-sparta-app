@@ -1,0 +1,17 @@
+---
+- name: Print gathered facts
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Display all facts
+      debug:
+        var: ansible_facts
+
+    - name: Display specific facts examples
+      debug:
+        msg: |
+          OS Family: {{ ansible_facts['os_family'] }}
+          Distribution: {{ ansible_facts['distribution'] }}
+          IP Address: {{ ansible_facts['default_ipv4']['address'] }}
+          Total Memory: {{ ansible_facts['memtotal_mb'] }} MB
+          Processor Count: {{ ansible_facts['processor_count'] }}

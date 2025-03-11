@@ -1,0 +1,43 @@
+---
+- name: Deploy and start the app
+  hosts: web
+  become: yes
+  tasks:
+
+    - name: Set DB_HOST environment variable
+      lineinfile:
+        path: /etc/environment
+        line: 'DB_HOST=mongodb://{{ hostvars["database"].ansible_host }}:27017/posts'
+        create: yes
+
+    - name: Clone app repository
+      git:
+        repo: https://github.com/AmeenahRiffin/tech501-sparta-app/
+        dest: /home/ubuntu/app
+
+    - name: Check if npm dependencies are installed
+      stat:
+        path: /home/ubuntu/app/app/node_modules
+      register: npm_modules
+
+    - name: Install npm dependencies
+      shell: |
+        cd /home/ubuntu/app/app
+        npm install
+        npm install -g pm2
+      when: not npm_modules.stat.exists
+    - name: Check if app is running
+      shell: pm2 list | grep -q "myapp"
+      register: app_status
+      ignore_errors: yes
+
+    - name: Stop app if running
+      shell: pm2 stop myapp
+      when: app_status.rc == 0
+      ignore_errors: yes
+
+    - name: Start the app with PM2
+      shell: |
+        source /etc/environment
+        cd /home/ubuntu/app/app
+        pm2 start app.js --name myapp --env production

@@ -1,0 +1,19 @@
+---
+- name: Install system dependencies
+  hosts: web
+  gather_facts: yes
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - nginx
+        - git
+        - curl
+        - wget

@@ -1,0 +1,12 @@
+---
+- name: Configure Nginx reverse proxy
+  hosts: web
+  become: yes
+  tasks:
+    - name: Update Nginx configuration
+      shell: sed -i 's|try_files.*|proxy_pass http://127.0.0.1:3000;|' /etc/nginx/sites-available/default
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted

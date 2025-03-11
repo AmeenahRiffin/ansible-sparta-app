@@ -1,0 +1,6 @@
+---
+- import_playbook: roles/setup_dependencies.yml
+- import_playbook: roles/setup_node.yml
+- import_playbook: roles/setup_mongodb.yml
+- import_playbook: roles/deploy_app.yml
+- import_playbook: roles/configure_nginx.yml
