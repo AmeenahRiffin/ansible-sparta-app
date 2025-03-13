@@ -1,60 +1,70 @@
-General Goals
-- Install Ansible (On WSL)
-- Use Ansible to create an EC2 instance and install Git, Nginx, NodeJS, MongoDB, PM2, and other dependencies needed for the Sparta App (https://github.com/AmeenahRiffin/tech501-sparta-app), get the database running on it. Configuring the Port 3000 and the mongoDB port 27017. 
+# Setting Up Ansible for Sparta App Deployment
+
+- [Setting Up Ansible for Sparta App Deployment](#setting-up-ansible-for-sparta-app-deployment)
+  - [General Goals](#general-goals)
+  - [My Implementation Process](#my-implementation-process)
+    - [1. Setting Up WSL](#1-setting-up-wsl)
+    - [2. Installing Ansible](#2-installing-ansible)
+    - [3. Project Structure Setup](#3-project-structure-setup)
+    - [4. Inventory Configuration](#4-inventory-configuration)
+    - [5. EC2 Instance Management](#5-ec2-instance-management)
+    - [6. System Updates](#6-system-updates)
+    - [7. Nginx Installation](#7-nginx-installation)
+    - [8. Playbook Organization](#8-playbook-organization)
+  - [Outcome](#outcome)
+  - [Blockers](#blockers)
 
 
-Task:
-3. Setup Ansible controller and first target node ('app' instance)
+![diagram](images/diagram.png)
 
-a. Task: Create EC2 instances for Ansible controller and first target node
+## General Goals
+- Install Ansible on WSL (Windows Subsystem for Linux)
+- Use Ansible to provision and configure an EC2 instance with:
+   - Git
+   - Nginx
+   - NodeJS
+   - MongoDB
+   - PM2
+   - Other dependencies for the [Sparta App](https://github.com/AmeenahRiffin/tech501-sparta-app)
+- Configure ports 3000 and 27017 for the app and MongoDB respectively
 
-b. Task: Setup dependencies for the Ansible controller and first target node
+## My Implementation Process
 
-c. Task: Use other ad hoc commands
-
-d. Task: Do update and upgrade on target nodes using ad hoc commands
-
-e. Task: Consolidate ad hoc commands by copying a file to a target node
-
-f. Task: Create and run playbook to install nginx on target node
-
-g. Task: Create and run playbook to provision app VM
-
-h. (Extension - if time) Task: Create and run playbook to print facts gathered
-
-
-1. I was not able to install ansible on my windows machine, so I used WSL (Windows Subsystem for Linux) to install it. This was done by using the following command:
+### 1. Setting Up WSL
+Since I couldn't install Ansible directly on Windows, I opted for WSL. I installed Ubuntu using:
 
 ```bash
 wsl --install -d Ubuntu
 ```
 
-This allowed me to specify a distribution to install, which I chose to be Ubuntu. I set my username to AmeenahRiffin and the password to something I could remember.
+I created my account with username 'AmeenahRiffin'. To access the Ubuntu terminal later, I simply use:
 
-To login to my ubuntu terminal if I log out, I navigate to the Ubuntu folder, and I used the following command:
 ```bash
 wsl -d Ubuntu
 ```
 
-2. Once I had installed WSL, I was in my ubuntu terminal. I then used the following commands to install ansible:
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   sudo apt install ansible -y
-   ```
+### 2. Installing Ansible
+Within my Ubuntu environment, I installed Ansible using:
 
-  This installed ansible on my ubuntu machine.
-  ![alt text](images/image.png)
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install ansible -y
+```
 
-3. I then created a new directory called ansible-sparta-app. In this directory I created a new file called playbook.yml and inventory.ini. This is where I wrote my playbook and inventory.
+![Ansible Installation](images/image.png)
 
-The commands I used were:
+### 3. Project Structure Setup
+I created a dedicated project directory with necessary files:
+
 ```bash
 mkdir ansible-sparta-app
 cd ansible-sparta-app
 touch playbook.yml inventory.ini
 ```
 
-4. Create inventory.ini file with target hosts:
+### 4. Inventory Configuration
+I set up my inventory.ini with the following structure:
+
 ```ini
 [app]
 <target-node-ip>
@@ -64,44 +74,113 @@ ansible_user=ubuntu
 ansible_ssh_private_key_file=~/.ssh/aws-ansible-key
 ```
 
-5. For creating EC2 instances:
+### 5. EC2 Instance Management
+
+I created my EC2 instances in AWS:
+![EC2 Instances](images/image-1.png)
+
+Initially, I encountered connectivity issues:
+![Connection Error](images/image-3.png)
+
+I resolved this by transferring my AWS key to the target node:
+
 ```bash
-# Launch EC2 instances from AWS Console or CLI
-# Ensure to use Ubuntu 18.04 AMI
-# Configure security groups to allow SSH access
+ansible web -m copy -a "src=/.ssh/ameenah-aws-key.pem dest=/home/ubuntu/.ssh/ameenah-aws-key.pem owner=ubuntu group=ubuntu mode=0400" --become
 ```
 
-![alt text](images/image-1.png)
+![Key Transfer](images/image-9.png)
 
-![alt text](images/image-3.png)
-(This needed me to put the correct directory for the key, and also format the message so it's all on one line)
+Success! I could now ping my target node:
+![Successful Ping](images/image-2.png)
+![Connection Success](images/image-4.png)
 
-![alt text](images/image-2.png)
+### 6. System Updates
+I explored different methods for running updates:
 
-![alt text](images/image-4.png)
+Using command module:
+```bash
+ansible web -m command -a "apt update" --become
+```
+![Command Update](images/image-6.png)
 
-command:
-![alt text](images/image-6.png)
+Using shell module:
+```bash
+ansible web -m shell -a "apt update && apt upgrade" --become
+```
+![Shell Update](images/image-7.png)
 
-shell:
-![alt text](images/image-7.png)
+Using apt module:
+```bash
+ansible web -m apt -a "update_cache=yes upgrade=dist" --become
+```
+![Apt Update](images/image-8.png)
 
-apt:
-![alt text](images/image-8.png)
+### 7. Nginx Installation
+I successfully installed and verified Nginx:
+![Nginx Installation](images/image-10.png)
 
-
-Copying SSH Key to the target node:
-![alt text](images/image-9.png)
-
-Installing nginx:
-![alt text](images/image-10.png)
-
-```ansible-playbook install_nginx.yml
+```bash
+ansible-playbook install_nginx.yml
 ```
 
-Checking if nginx is running on the target node:
-![alt text](images/image-11.png)
+Verification:
+![Nginx Verification](images/image-11.png)
 
+### 8. Playbook Organization
+I created a main.yml to orchestrate all my playbooks:
+![Main Playbook](images/image-12.png)
 
-![alt text](images/image-12.png)
+To run all playbooks:
+```bash
+ansible-playbook main.yml
+```
+
+All the playbooks run successfully, and I verified the results.
+
+**Facts Playbook:**
+* [Gather System Facts](ansible/play_facts_project/roles/print-facts.yml)
+
+**System Updates:**
+* [Update and Upgrade System](ansible/update_and_upgrade/roles/update_upgrade_all.yml)
+
+**Application Playbooks:**
+* [Configure Nginx Web Server](ansible/app_project/roles/configure_nginx.yml)
+* [Deploy Node Application](ansible/app_project/roles/deploy_app.yml)
+* [Install Application Dependencies](ansible/app_project/roles/setup_dependencies.yml)
+* [Setup Node.js Environment](ansible/app_project/roles/setup_node.yml)
+
+**Database Playbooks:**
+* [Configure MongoDB Settings](ansible/db_project/roles/configure_db.yml)
+* [Install and Setup MongoDB](ansible/db_project/roles/setup_mongodb.yml)
+
+**Web Server Configuration:**
+* [Configure Nginx Web Server](ansible/app_project/roles/configure_nginx.yml)
+
+## Outcome
+Ansible successfully provisioned and configured an EC2 instance with all required dependencies for the Sparta App deployment. The automation process included:
+
+1. Installation of system packages and dependencies
+2. Node.js environment setup and configuration
+3. MongoDB database installation and configuration
+4. Nginx web server setup and reverse proxy configuration
+
+Initially encountered challenges with the MongoDB database setup, specifically caused by incorrect MongoDB configuration settings (When AWS shuts down, I had to reconfigure the ips of the app and database in the ansible settings as the IP changed)
+
+This was resolved by simply changing the IP addresses in the ansible settings file.
+
+Main Sparta Page Working on Target App Node:
+![alt text](images/app.png)
+
+Database Connectivity Established (Posts Page seeded):
+![alt text](images/db.png)
+- Successfully created and seeded the posts collection
+- Verified data persistence across application restarts
+- Confirmed proper read/write operations
+
+## Blockers
+While there were no major blockers that prevented completion, the following challenges required additional troubleshooting time:
+
+Database Connectivity Issues:
+   - Spent approximately 2 hours debugging MongoDB connection problems
+   - Needed to modify ansible configuration settings to resolve connectivity issues
 
